@@ -80,10 +80,12 @@ def history_to_pairs(history):
     return pairs
 
 
-def memory_bar(used=0, forgotten_turns=0, remembering=False):
+def memory_bar(used=0, forgotten_turns=0, remembering=False, window_full=False):
     """A thin bar: how much of Jay's 256-token context window the last prompt + reply filled."""
     used = min(used, BLOCK_SIZE)
-    if not remembering:
+    if window_full:
+        note = ("The 256-token window is full: Jay now forgets the oldest tokens as it writes.")
+    elif not remembering:
         note = "Jay only sees your latest message. Turn on “Remember the conversation” to replay the chat."
     elif forgotten_turns:
         s = "s" if forgotten_turns > 1 else ""
@@ -175,7 +177,8 @@ def build_demo(weights_dir=WEIGHTS_DIR):
         forgotten = len(pairs) - len(kept)
 
         def bar_now(reply_len):
-            return memory_bar(len(prompt_ids) + reply_len, forgotten, remember)
+            total = len(prompt_ids) + reply_len
+            return memory_bar(total, forgotten, remember, window_full=total > BLOCK_SIZE)
 
         reply_ids = []
         yield "", bar_now(0), None
@@ -240,9 +243,9 @@ def build_demo(weights_dir=WEIGHTS_DIR):
 
         new_chat.click(lambda: ([], [], memory_bar(), None, PEEK_HINT, None), None,
                        [chat.chatbot, chat.chatbot_state, meter, last_reply, top5, heatmap])
-        peek_btn.click(peek, [last_reply, layer, head], [top5, heatmap])
-        for slider in (layer, head):
-            slider.release(peek, [last_reply, layer, head], [top5, heatmap])
+        # One handler for the button and both sliders, instead of three identical endpoints.
+        gr.on([peek_btn.click, layer.release, head.release], peek,
+              [last_reply, layer, head], [top5, heatmap])
 
     return demo
 

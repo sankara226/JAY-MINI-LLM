@@ -75,8 +75,16 @@ def load_jay(weights_dir, model_file=None, device="cpu"):
 
 # ---------------------------------------------------------------- tokens
 
+def escape_special_tokens(text):
+    """Stop text typed by a user from becoming a control token: "<|end|>" -> "< |end|>"."""
+    for token in SPECIAL_TOKENS:
+        text = text.replace(token, token.replace("<|", "< |"))
+    return text
+
+
 def encode(tokenizer, text):
-    return tokenizer.encode(text).ids
+    """Text -> token ids. Special-token strings are escaped, never injected into the prompt."""
+    return tokenizer.encode(escape_special_tokens(text)).ids
 
 
 def decode(tokenizer, ids):

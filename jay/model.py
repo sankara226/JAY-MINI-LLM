@@ -106,18 +106,21 @@ class GPT(nn.Module):
 
     @torch.no_grad()
     def generate(self, idx, max_new_tokens, temperature=0.8, top_k=50, stop_token=None):
-        self.eval()
-        for _ in range(max_new_tokens):
-            idx_cond = idx[:, -BLOCK_SIZE:]
-            logits, _ = self(idx_cond)
-            logits = logits[:, -1, :] / temperature
-            if top_k is not None:
-                v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-                logits[logits < v[:, [-1]]] = -float("inf")
-            probs = F.softmax(logits, dim=-1)
-            next_id = torch.multinomial(probs, num_samples=1)
-            idx = torch.cat([idx, next_id], dim=1)
-            if stop_token is not None and next_id.item() == stop_token:
-                break
-        self.train()
-        return idx
+        was_training = self.training
+        self.eval()  # no dropout while generating
+        try:
+            for _ in range(max_new_tokens):
+                idx_cond = idx[:, -BLOCK_SIZE:]
+                logits, _ = self(idx_cond)
+                logits = logits[:, -1, :] / temperature
+                if top_k is not None:
+                    v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+                    logits[logits < v[:, [-1]]] = -float("inf")
+                probs = F.softmax(logits, dim=-1)
+                next_id = torch.multinomial(probs, num_samples=1)
+                idx = torch.cat([idx, next_id], dim=1)
+                if stop_token is not None and next_id.item() == stop_token:
+                    break
+            return idx
+        finally:
+            self.train(was_training)  # leave the model in the mode it was in
