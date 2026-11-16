@@ -1,0 +1,24 @@
+# Runs the tests on GitHub every time code is pushed or a pull request is opened.
+# The .pt weights are not in git, so the tests that need them are skipped here;
+# the tokenizer, chat-format and history-trimming tests still run.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install the CPU build of PyTorch (smaller and faster)
+        run: pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cpu
+      - name: Install the other libraries (requirements-dev.txt includes requirements.txt)
+        run: pip install -r requirements-dev.txt
+      - name: Run the tests
+        run: pytest -q

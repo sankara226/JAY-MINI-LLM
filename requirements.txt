@@ -1,0 +1,11 @@
+# Versions installed and tested on 2026-11-10 (Python 3.11, macOS Intel, CPU).
+# torch 2.2.2 is the newest CPU build for Intel Macs; it needs numpy < 2.
+# On Linux / Hugging Face Spaces you can get the smaller CPU build with:
+#   pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cpu
+torch==2.2.2
+tokenizers==0.23.3
+gradio==6.31.0
+huggingface_hub==2.4.0
+numpy==1.26.4
+pandas==2.2.3  # used by gradio; this version still works with numpy 1.x
+matplotlib==3.11.2

@@ -1,0 +1,20 @@
+# Model weights are ~50 MB each: never commit them
+*.pt
+*.zip
+weights/*
+!weights/tokenizer.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.gradio/
+
+# Notebook and OS leftovers
+.ipynb_checkpoints/
+.DS_Store
+tinystories*.txt
+
+# Secrets
+.env
