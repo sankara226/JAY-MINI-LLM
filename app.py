@@ -13,8 +13,8 @@ import gradio as gr
 import matplotlib
 
 matplotlib.use("Agg")  # draw charts without opening a window
-import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.figure import Figure
 
 from jay.chat import (
     BLOCK_SIZE, MODEL_FILES, available_versions, decode, decode_partial, load_jay,
@@ -26,10 +26,21 @@ WEIGHTS_DIR = Path(os.environ.get("JAY_WEIGHTS_DIR", HERE / "weights"))
 KARPATHY_VIDEO = "https://www.youtube.com/watch?v=7xTGNNLPyMI"
 
 
+def allowed_versions():
+    """Versions this server may offer. JAY_VERSIONS="v3" keeps memory low on small hosts
+    (each loaded version adds ~55 MB); unset = every version whose file exists."""
+    wanted = os.environ.get("JAY_VERSIONS", "")
+    chosen = [v.strip() for v in wanted.split(",") if v.strip()]
+    unknown = [v for v in chosen if v not in MODEL_FILES]
+    if unknown:
+        raise ValueError(f"JAY_VERSIONS has unknown versions {unknown}; choose from {list(MODEL_FILES)}")
+    return chosen or list(MODEL_FILES)
+
+
 # ---------------------------------------------------------------- weights
 
 def download_weights_from_hub(weights_dir):
-    """On Hugging Face Spaces: fetch the weights from the model repo named in JAY_MODEL_REPO."""
+    """On a server: fetch the weights from the Hugging Face model repo named in JAY_MODEL_REPO."""
     repo_id = os.environ.get("JAY_MODEL_REPO")
     if not repo_id:
         return
@@ -37,7 +48,8 @@ def download_weights_from_hub(weights_dir):
     from huggingface_hub.errors import EntryNotFoundError
 
     hf_hub_download(repo_id, "tokenizer.json", local_dir=weights_dir)
-    for filename in MODEL_FILES.values():
+    for version in allowed_versions():
+        filename = MODEL_FILES[version]
         try:
             hf_hub_download(repo_id, filename, local_dir=weights_dir)
         except EntryNotFoundError:
@@ -121,7 +133,10 @@ def heatmap_figure(tokens, weights, layer, head):
     grey = "#8E8E8E"
     labels = [t.replace("\n", "\\n") for t in tokens]
     size = max(4.0, min(7.0, 0.2 * len(labels) + 2))
-    fig, ax = plt.subplots(figsize=(size, size))
+    # A standalone Figure, not plt.subplots(): pyplot keeps every figure it creates open,
+    # which would leak ~3 MB per Peek view on a long-running server.
+    fig = Figure(figsize=(size, size))
+    ax = fig.subplots()
     fig.patch.set_alpha(0)
     ax.patch.set_alpha(0)
     ax.imshow(weights, cmap=blue, vmin=0, vmax=1)
@@ -162,11 +177,12 @@ EXAMPLES = ["Hi!", "Who are you?", "Tell me a story about a dog.", "What is 4 + 
 def build_demo(weights_dir=WEIGHTS_DIR):
     weights_dir = Path(weights_dir)
     download_weights_from_hub(weights_dir)
-    versions = available_versions(weights_dir)
+    versions = [v for v in available_versions(weights_dir) if v in allowed_versions()]
     if not versions:
         raise FileNotFoundError(
             f"No chat_model*.pt in {weights_dir}. Copy tokenizer.json and chat_model_v*.pt there "
-            "from Google Drive (MyDrive/tiny_llm), or set JAY_WEIGHTS_DIR / JAY_MODEL_REPO.")
+            "from Google Drive (MyDrive/tiny_llm), or set JAY_WEIGHTS_DIR / JAY_MODEL_REPO. "
+            "If JAY_VERSIONS is set, check that those versions were uploaded.")
 
     def respond(message, history, temperature, max_new_tokens, version, remember):
         jay = get_jay(weights_dir, version)

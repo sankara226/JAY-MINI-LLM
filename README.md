@@ -162,7 +162,7 @@ Don't install the whole `requirements.txt` in Colab: it would downgrade Colab's 
 
 ### 4. Put it on the web for free
 
-Follow the step-by-step guide: **[docs/DEPLOY.md](docs/DEPLOY.md)**. It hosts Jay on Hugging Face Spaces (free CPU) in about 20 minutes, without using the terminal.
+Follow the step-by-step guide: **[docs/DEPLOY.md](docs/DEPLOY.md)**. It hosts Jay on Hugging Face Spaces (free CPU) in about 20 minutes, without using the terminal. It also covers Render, using the ready-made [`render.yaml`](render.yaml).
 
 ### 5. Run the tests
 
@@ -283,6 +283,7 @@ JAY-MINI-LLM/
 │   ├── DEPLOY.md                  # how to put Jay on the web for free
 │   └── images/                    # screenshots used in this README
 ├── .github/workflows/tests.yml    # runs the tests on GitHub on every push
+├── render.yaml                    # settings for hosting on Render (serves Jay v3 only)
 ├── requirements.txt               # pinned libraries for the app
 ├── LICENSE                        # MIT licence
 └── requirements-dev.txt           # + pytest, for the tests

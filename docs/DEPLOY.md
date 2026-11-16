@@ -7,6 +7,8 @@ This guide puts the chat page online with **Hugging Face Spaces**, a free hostin
 - **You need:** a web browser, and the files from `MyDrive/tiny_llm/` on your computer (`tokenizer.json`, `chat_model.pt`, `chat_model_v2.pt`, `chat_model_v3.pt`).
 - **No terminal needed:** everything is done by clicking and uploading.
 
+Prefer **Render**? See [Option B: Render](#option-b-render) at the end. It deploys straight from the GitHub repo, but its free plan is much smaller, so it serves only Jay v3.
+
 ## How it works (the big picture)
 
 You'll create **two** things on Hugging Face:
@@ -139,6 +141,31 @@ Use **New variable**, not **New secret**: the weights repository is public, so t
 
 - **Code changes:** upload the changed file again in the Space's **Files** tab. The Space rebuilds by itself.
 - **New weights** (for example a `chat_model_v4.pt`): upload them to the **model repository**, then restart the Space (**Settings** → **Factory reboot**). To show v4 in the model picker, `chat_model_v4.pt` must also be added to `MODEL_FILES` in `jay/chat.py`.
+
+## Option B: Render
+
+[Render](https://render.com) runs the app straight from the GitHub repository and redeploys it every time you push. Its settings are already in [`render.yaml`](../render.yaml) at the root of the repo.
+
+- **Cost:** free, but the free plan is small: **512 MB of memory** and **a tenth of one CPU**.
+- **What that means for Jay:**
+  - Only **v3** is served. Each loaded version takes about 55 MB, and all three together would use about 470 MB, too close to the limit. v3 alone uses about 345 MB.
+  - Replies type out slowly: a full story can take close to a minute.
+  - The app **sleeps after 15 minutes** without visitors. The first visit after that waits about a minute while it wakes up.
+
+**Steps:**
+
+1. Upload the weights to a public Hugging Face model repository called `jay-weights`, as in [Step 2](#step-2-upload-the-weights-to-a-model-repository). For Render, only `tokenizer.json` and `chat_model_v3.pt` are needed.
+2. If your Hugging Face username isn't `sankara226`, change `JAY_MODEL_REPO` in `render.yaml` to `your-name/jay-weights`, then commit and push.
+3. Sign up at <https://dashboard.render.com> with your GitHub account.
+4. Click **New** → **Blueprint**, pick the `JAY-MINI-LLM` repository, and click **Apply**. Render reads `render.yaml` and creates a web service called `chat-with-jay`.
+5. Wait for the build (5–10 minutes). In **Logs**, the last line should be Gradio's `Running on local URL: http://0.0.0.0:10000`.
+6. Open the link Render shows (`https://chat-with-jay-….onrender.com`) and try the example buttons.
+
+| What you see | Fix |
+|---|---|
+| `Out of memory (used over 512Mi)` | Check that `JAY_VERSIONS` is `v3` in the service's **Environment** tab. |
+| `RepositoryNotFoundError` in the logs | The `JAY_MODEL_REPO` value is wrong, or the model repository is private. |
+| `No open ports detected` | `GRADIO_SERVER_NAME` must be `0.0.0.0` and `GRADIO_SERVER_PORT` must be `10000` (both are set in `render.yaml`). |
 
 ## Quicker but temporary: a share link from Colab
 

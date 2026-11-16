@@ -1,0 +1,31 @@
+# Render blueprint: one free web service that runs the chat page.
+# Render reads this file when you choose New -> Blueprint and pick this GitHub repo.
+# The weights are not in git: the app downloads them at start-up from the Hugging Face
+# model repo in JAY_MODEL_REPO (it must be public).
+services:
+  - type: web
+    name: chat-with-jay
+    runtime: python
+    plan: free
+    # The CPU-only build of PyTorch (~200 MB) instead of the default one with GPU
+    # libraries (~2 GB), then everything else. torch==2.2.2 is then already satisfied.
+    buildCommand: >-
+      pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cpu &&
+      pip install -r requirements.txt
+    startCommand: python app.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: JAY_MODEL_REPO          # where the weights are downloaded from
+        value: sankara226/jay-weights
+      - key: JAY_VERSIONS            # only v3: all three versions would not fit in 512 MB
+        value: v3
+      - key: GRADIO_SERVER_NAME      # listen on the public network interface
+        value: 0.0.0.0
+      - key: GRADIO_SERVER_PORT      # the port Render sends traffic to
+        value: "10000"
+      - key: OMP_NUM_THREADS         # the free plan has a fraction of one CPU: use one thread
+        value: "1"
+      - key: GRADIO_ANALYTICS_ENABLED
+        value: "False"
